@@ -1,0 +1,33 @@
+name: Build & Push smartproxy
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'proxy-setup/smartproxy/**'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Log in to ghcr.io
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: proxy-setup/smartproxy
+          push: true
+          tags: ghcr.io/alexadiaconitei/acestream-smartproxy:latest

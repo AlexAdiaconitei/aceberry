@@ -1,0 +1,83 @@
+## AceStream Stack para Raspberry Pi
+##
+## Bridge network con DNS explícito (Cloudflare 1.1.1.1).
+## Tailscale reescribe /etc/resolv.conf con MagicDNS (100.100.100.100)
+## que no resuelve dominios externos. Con bridge + dns:, Docker crea
+## su propio resolv.conf dentro del contenedor, evitando el problema.
+##
+## Puertos mapeados al host:
+##   6878  → AceStream Engine HTTP
+##   8621  → AceStream P2P
+##   62062 → AceStream API legacy
+##   8888  → HTTPAceProxy (listas IPTV, stats)
+##   8080  → Smart Proxy (web UI, auto-limpieza)
+
+services:
+
+  aceserve:
+    image: jopsis/aceserve:latest
+    container_name: aceserve
+    ports:
+      - "${ACESTREAM_HTTP_PORT:-6878}:6878"
+      - "8621:8621"
+      - "${ACESTREAM_API_PORT:-62062}:62062"
+    dns:
+      - 1.1.1.1
+      - 1.0.0.1
+      - 8.8.8.8
+    restart: unless-stopped
+    volumes:
+      - acestream-cache:/root/.ACEStream
+    ## La imagen aceserve NO tiene curl, usamos wget para el healthcheck
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "--timeout=5", "http://127.0.0.1:6878/webui/api/service?method=get_version"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  httpaceproxy:
+    image: jopsis/httpaceproxy:latest
+    container_name: httpaceproxy
+    ports:
+      - "${HTTPACEPROXY_PORT:-8888}:8888"
+    dns:
+      - 1.1.1.1
+      - 1.0.0.1
+    restart: unless-stopped
+    environment:
+      ## En bridge, los servicios se encuentran por nombre Docker
+      - ACESTREAM_HOST=aceserve
+      - ACESTREAM_API_PORT=${ACESTREAM_API_PORT:-62062}
+      - ACESTREAM_HTTP_PORT=${ACESTREAM_HTTP_PORT:-6878}
+      - MAX_CONNECTIONS=${MAX_CONNECTIONS:-10}
+      - MAX_CONCURRENT_CHANNELS=${MAX_CONCURRENT_CHANNELS:-3}
+    depends_on:
+      aceserve:
+        condition: service_healthy
+
+  smartproxy:
+    image: ghcr.io/alexadiaconitei/acestream-smartproxy:latest
+    container_name: acestream-proxy
+    ports:
+      - "${PROXY_PORT:-8080}:8080"
+    restart: unless-stopped
+    environment:
+      - ENGINE_HOST=aceserve
+      - ENGINE_PORT=${ACESTREAM_HTTP_PORT:-6878}
+      - PROXY_PORT=${PROXY_PORT:-8080}
+      - HTTPACEPROXY_PORT=${HTTPACEPROXY_PORT:-8888}
+      - SESSION_TIMEOUT=${SESSION_TIMEOUT:-600}
+    depends_on:
+      aceserve:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+volumes:
+  acestream-cache:
+    name: acestream-cache

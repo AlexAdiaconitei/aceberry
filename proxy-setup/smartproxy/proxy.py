@@ -186,10 +186,29 @@ def engine_request(path, timeout=10):
         return None
 
 
+def find_active_session(sid):
+    """Return an existing session dict for sid that owns the engine session, or None."""
+    with sessions_lock:
+        for s in sessions.values():
+            if s.get('id') == sid and s.get('command_url'):
+                return dict(s)
+    return None
+
+
 def stop_session(client_key):
     with sessions_lock:
         session = sessions.pop(client_key, None)
     if session and session.get('command_url'):
+        # Only stop engine if no other session is using the same stream ID
+        sid = session.get('id')
+        with sessions_lock:
+            still_active = any(
+                s.get('id') == sid and s.get('command_url')
+                for s in sessions.values()
+            )
+        if still_active:
+            print(f"[stop] Skip engine stop — {sid[:12]} still used by another client")
+            return
         try:
             cmd = session['command_url']
             # Rewrite to internal engine address
@@ -246,6 +265,25 @@ class Handler(http.server.BaseHTTPRequestHandler):
         if had_previous:
             stop_session(client_ip)
             time.sleep(1.5)
+
+        # Reuse existing engine session if this stream ID is already active
+        existing = find_active_session(sid)
+        if existing:
+            with sessions_lock:
+                sessions[client_ip] = {
+                    'id': sid,
+                    'command_url': None,  # sentinel: don't stop engine on cleanup
+                    'stat_url': existing.get('stat_url', ''),
+                    'playback_url': existing['playback_url'],
+                    'started': time.time(),
+                    'started_str': time.strftime('%H:%M:%S'),
+                }
+            print(f"[play] {sid[:16]}... -> {client_ip} (reused session)")
+            self.send_response(302)
+            self.send_header('Location', existing['playback_url'])
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.end_headers()
+            return
 
         # Start session via format=json to get control URLs
         data = engine_request(f"{endpoint}?id={sid}&format=json", timeout=30)

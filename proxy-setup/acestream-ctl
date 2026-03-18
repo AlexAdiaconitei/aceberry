@@ -1,0 +1,73 @@
+#!/usr/bin/env bash
+set -euo pipefail
+G='\033[0;32m'; Y='\033[1;33m'; C='\033[0;36m'; B='\033[1m'; N='\033[0m'; R='\033[0;31m'
+EP="${ACESTREAM_PORT:-6878}"; PP="${ACESTREAM_PROXY_PORT:-8080}"; AP="${ACESTREAM_LISTS_PORT:-8888}"
+
+get_ip(){ tailscale ip -4 2>/dev/null || hostname -I 2>/dev/null | awk '{print $1}'; }
+
+case "${1:-help}" in
+status)
+    echo -e "${B}Estado AceStream${N}"; echo ""
+    code=$(curl -sf -o /dev/null -w '%{http_code}' "http://127.0.0.1:${EP}/webui/api/service?method=get_version" 2>/dev/null || echo 000)
+    [[ "$code" == "200" ]] && echo -e "  ${G}●${N} Engine :${EP}" || echo -e "  ${R}●${N} Engine :${EP} offline"
+    code=$(curl -sf -o /dev/null -w '%{http_code}' "http://127.0.0.1:${PP}/health" 2>/dev/null || echo 000)
+    [[ "$code" == "200" ]] && echo -e "  ${G}●${N} Aceberry :${PP}" || echo -e "  ${R}●${N} Aceberry :${PP} offline"
+    code=$(curl -sf -o /dev/null -w '%{http_code}' "http://127.0.0.1:${AP}/stat" 2>/dev/null || echo 000)
+    [[ "$code" == "200" ]] && echo -e "  ${G}●${N} HTTPAceProxy :${AP}" || echo -e "  ${R}●${N} HTTPAceProxy :${AP} offline"
+    echo ""
+    sessions=$(curl -sf "http://127.0.0.1:${PP}/status" 2>/dev/null || echo "")
+    if [[ -n "$sessions" ]]; then
+        echo -e "  ${B}Sesiones:${N}"
+        echo "$sessions" | python3 -c "
+import sys,json
+d=json.load(sys.stdin)
+s=d.get('sessions',{})
+if not s: print('    Ninguna')
+for ip,v in s.items(): print(f'    {ip} -> {v[\"id\"][:16]}... ({v[\"started\"]})')
+" 2>/dev/null || echo "    (no disponible)"
+    fi
+    echo ""
+    echo -e "  ${B}Contenedores:${N}"
+    docker ps --filter "name=aceserve" --filter "name=httpaceproxy" --filter "name=aceberry-ui" \
+        --format "    {{.Names}}  {{.Status}}" 2>/dev/null || echo "    (docker no disponible)"
+    echo ""
+    ;;
+url)
+    id="${2:-}"; [[ -z "$id" ]] && { echo "Uso: acestream-ctl url <ID>"; exit 1; }
+    id="${id#acestream://}"; ip=$(get_ip)
+    echo ""
+    echo -e "${B}URLs:${N}"
+    echo "  VLC:     http://${ip}:${PP}/ace/getstream?id=${id}"
+    echo "  Engine:  http://${ip}:${EP}/ace/getstream?id=${id}"
+    echo "  Web UI:  http://${ip}:${PP}/"
+    echo ""
+    ;;
+lists)
+    ip=$(get_ip)
+    echo ""
+    echo -e "${B}Listas IPTV (abre en VLC):${N}"
+    echo "  http://${ip}:${AP}/aio          Todo combinado"
+    echo "  http://${ip}:${AP}/newera       322 canales deportivos"
+    echo "  http://${ip}:${AP}/elcano       71 canales seleccionados"
+    echo "  http://${ip}:${AP}/acepl        1000+ canales"
+    echo ""
+    ;;
+web)  ip=$(get_ip); echo "http://${ip}:${PP}/" ;;
+logs) cd ~/acestream-stack && docker compose logs -f --tail 50 ;;
+restart) cd ~/acestream-stack && docker compose restart ;;
+stop) curl -sf "http://127.0.0.1:${PP}/stop" > /dev/null 2>&1 && echo "Stream parado" || echo "Sin stream activo" ;;
+help|--help|-h|*)
+    echo ""
+    echo -e "${B}acestream-ctl${N} — Control de AceStream (opcional)"
+    echo ""
+    echo "  status     Estado de servicios y sesiones"
+    echo "  url <ID>   Generar URLs"
+    echo "  lists      Listas IPTV"
+    echo "  web        URL de la Web UI"
+    echo "  stop       Parar stream activo"
+    echo "  logs       Logs en tiempo real"
+    echo "  restart    Reiniciar stack"
+    echo "  help       Esta ayuda"
+    echo ""
+    ;;
+esac

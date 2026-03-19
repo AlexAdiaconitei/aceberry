@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AceBerry — AceStream para Raspberry Pi</title>
+  <meta name="description" content="Stack de AceStream P2P para Raspberry Pi con acceso VPN vía Tailscale. Un solo comando para instalarlo todo." />
+  <link href="https://cdn.jsdelivr.net/npm/daisyui@4/dist/full.min.css" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script defer src="https://unpkg.com/alpinejs@3/dist/cdn.min.js"></script>
+  <style>
+    html { scroll-behavior: smooth; }
+    .gradient-text {
+      background: linear-gradient(135deg, #7c3aed, #3b82f6);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .hero-glow {
+      background: radial-gradient(ellipse 80% 50% at 50% -10%, rgba(124, 58, 237, 0.25), transparent);
+    }
+    .code-block {
+      font-family: 'Courier New', Courier, monospace;
+    }
+  </style>
+</head>
+<body class="bg-base-100 text-base-content">
+
+  <!-- NAVBAR -->
+  <nav class="navbar bg-base-100/80 backdrop-blur-sm border-b border-base-300 sticky top-0 z-50">
+    <div class="max-w-5xl mx-auto w-full px-4 flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <img src="logo.png" alt="AceBerry logo" class="w-8 h-8" />
+        <span class="text-lg font-bold gradient-text">AceBerry</span>
+      </div>
+      <a href="https://github.com/AlexAdiaconitei/aceberry"
+         target="_blank"
+         rel="noopener noreferrer"
+         class="btn btn-ghost btn-sm gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.387.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.726-4.042-1.61-4.042-1.61-.546-1.387-1.333-1.757-1.333-1.757-1.09-.745.083-.729.083-.729 1.205.085 1.84 1.237 1.84 1.237 1.07 1.834 2.807 1.304 3.492.997.108-.775.418-1.305.762-1.605-2.665-.3-5.467-1.332-5.467-5.93 0-1.31.468-2.382 1.236-3.222-.124-.303-.536-1.523.117-3.176 0 0 1.008-.322 3.3 1.23a11.5 11.5 0 0 1 3.003-.404c1.02.005 2.047.138 3.003.404 2.29-1.552 3.297-1.23 3.297-1.23.655 1.653.243 2.873.12 3.176.77.84 1.235 1.912 1.235 3.222 0 4.61-2.807 5.625-5.479 5.92.43.372.823 1.102.823 2.222 0 1.606-.015 2.898-.015 3.293 0 .322.216.694.825.576C20.565 21.796 24 17.298 24 12c0-6.63-5.37-12-12-12z"/>
+        </svg>
+        GitHub
+      </a>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero-glow min-h-[85vh] flex items-center justify-center px-4 py-20">
+    <div class="max-w-3xl mx-auto text-center">
+      <div class="badge badge-outline badge-lg mb-6 gap-2 px-4 py-3">
+        <span class="w-2 h-2 rounded-full bg-success animate-pulse inline-block"></span>
+        Para Raspberry Pi · ARM64 · ARM/v7 · AMD64
+      </div>
+
+      <img src="logo.png" alt="AceBerry" class="w-28 h-28 md:w-36 md:h-36 mx-auto mb-6 drop-shadow-2xl" />
+
+      <h1 class="text-5xl md:text-7xl font-black mb-4 leading-tight">
+        <span class="gradient-text">AceBerry</span>
+      </h1>
+      <p class="text-xl md:text-2xl text-base-content/70 mb-3 font-medium">
+        AceStream P2P en tu Raspberry Pi
+      </p>
+      <p class="text-base md:text-lg text-base-content/50 mb-10 max-w-xl mx-auto">
+        Stack completo con proxy inteligente, interfaz web y acceso remoto vía Tailscale.
+        Un solo comando para instalarlo todo.
+      </p>
+
+      <!-- ONE-LINER -->
+      <div x-data="{ copied: false }" class="mb-8">
+        <div class="bg-base-300 border border-base-content/10 rounded-2xl p-4 md:p-5 text-left relative group max-w-2xl mx-auto">
+          <p class="text-xs text-base-content/40 uppercase tracking-widest mb-2 font-semibold">Instalación</p>
+          <div class="flex items-start gap-3">
+            <span class="text-success mt-0.5 shrink-0 font-bold code-block">$</span>
+            <code class="code-block text-sm md:text-base text-base-content/90 break-all leading-relaxed">
+              curl -fsSL https://raw.githubusercontent.com/AlexAdiaconitei/aceberry/main/proxy-setup/install.sh | sudo bash
+            </code>
+          </div>
+          <button
+            @click="
+              navigator.clipboard.writeText('curl -fsSL https://raw.githubusercontent.com/AlexAdiaconitei/aceberry/main/proxy-setup/install.sh | sudo bash');
+              copied = true;
+              setTimeout(() => copied = false, 2000)
+            "
+            class="btn btn-sm absolute top-3 right-3 gap-1.5 transition-all"
+            :class="copied ? 'btn-success' : 'btn-ghost'"
+          >
+            <template x-if="!copied">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+              </svg>
+            </template>
+            <template x-if="copied">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+            </template>
+            <span x-text="copied ? 'Copiado' : 'Copiar'"></span>
+          </button>
+        </div>
+        <p class="text-xs text-base-content/30 mt-2">Ejecutar en la Raspberry Pi · Requiere sudo</p>
+      </div>
+
+      <div class="flex flex-wrap gap-3 justify-center">
+        <a href="https://github.com/AlexAdiaconitei/aceberry" target="_blank" rel="noopener noreferrer"
+           class="btn btn-primary btn-lg gap-2 rounded-xl">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.387.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.726-4.042-1.61-4.042-1.61-.546-1.387-1.333-1.757-1.333-1.757-1.09-.745.083-.729.083-.729 1.205.085 1.84 1.237 1.84 1.237 1.07 1.834 2.807 1.304 3.492.997.108-.775.418-1.305.762-1.605-2.665-.3-5.467-1.332-5.467-5.93 0-1.31.468-2.382 1.236-3.222-.124-.303-.536-1.523.117-3.176 0 0 1.008-.322 3.3 1.23a11.5 11.5 0 0 1 3.003-.404c1.02.005 2.047.138 3.003.404 2.29-1.552 3.297-1.23 3.297-1.23.655 1.653.243 2.873.12 3.176.77.84 1.235 1.912 1.235 3.222 0 4.61-2.807 5.625-5.479 5.92.43.372.823 1.102.823 2.222 0 1.606-.015 2.898-.015 3.293 0 .322.216.694.825.576C20.565 21.796 24 17.298 24 12c0-6.63-5.37-12-12-12z"/>
+          </svg>
+          Ver en GitHub
+        </a>
+        <a href="#como-funciona" class="btn btn-outline btn-lg rounded-xl">
+          Cómo funciona
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- REQUISITOS -->
+  <section class="py-16 px-4 border-t border-base-300">
+    <div class="max-w-4xl mx-auto">
+      <h2 class="text-center text-sm font-semibold uppercase tracking-widest text-base-content/40 mb-10">Requisitos</h2>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+        <div class="card bg-base-200 border border-base-300 hover:border-primary/40 transition-colors">
+          <div class="card-body items-center text-center gap-3">
+            <div class="text-4xl">🍓</div>
+            <h3 class="card-title text-base">Raspberry Pi</h3>
+            <p class="text-sm text-base-content/60">RPi 4 o superior recomendado. Compatible con ARM64, ARMv7 y AMD64.</p>
+          </div>
+        </div>
+
+        <div class="card bg-base-200 border border-base-300 hover:border-primary/40 transition-colors">
+          <div class="card-body items-center text-center gap-3">
+            <div class="text-4xl">🐋</div>
+            <h3 class="card-title text-base">Docker</h3>
+            <p class="text-sm text-base-content/60">El instalador configura Docker automáticamente si no está presente en el sistema.</p>
+          </div>
+        </div>
+
+        <div class="card bg-base-200 border border-base-300 hover:border-primary/40 transition-colors">
+          <div class="card-body items-center text-center gap-3">
+            <div class="text-4xl">🔒</div>
+            <h3 class="card-title text-base">Tailscale</h3>
+            <p class="text-sm text-base-content/60">Acceso VPN seguro desde cualquier dispositivo. Cuenta gratuita suficiente.</p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ARQUITECTURA -->
+  <section class="py-16 px-4 border-t border-base-300 bg-base-200/30">
+    <div class="max-w-4xl mx-auto">
+      <div class="text-center mb-10">
+        <h2 class="text-3xl font-bold mb-3">Arquitectura</h2>
+        <p class="text-base-content/60">3 contenedores Docker trabajando juntos</p>
+      </div>
+
+      <!-- Flow diagram -->
+      <div class="flex flex-wrap items-center justify-center gap-2 mb-10 text-sm">
+        <div class="badge badge-outline badge-lg px-4 py-3">VLC / Cliente</div>
+        <span class="text-base-content/30 text-lg">→</span>
+        <div class="badge badge-secondary badge-lg px-4 py-3">Tailscale VPN</div>
+        <span class="text-base-content/30 text-lg">→</span>
+        <div class="badge badge-primary badge-lg px-4 py-3">Raspberry Pi</div>
+        <span class="text-base-content/30 text-lg">→</span>
+        <div class="badge badge-accent badge-lg px-4 py-3">Docker Stack</div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+        <div class="card bg-base-200 border border-primary/30">
+          <div class="card-body gap-3">
+            <div class="flex items-center justify-between">
+              <h3 class="card-title text-base text-primary">AceBerry</h3>
+              <span class="badge badge-primary badge-outline font-mono">:8080</span>
+            </div>
+            <p class="text-sm text-base-content/70">
+              Interfaz web y servidor HTTP. Resuelve IDs de AceStream y redirige al proxy de streaming.
+              Incluye proxy reverso para las URLs del cliente.
+            </p>
+            <div class="text-xs text-base-content/40 font-mono bg-base-300 rounded-lg p-2">
+              GET /ace/getstream?id=…
+            </div>
+          </div>
+        </div>
+
+        <div class="card bg-base-200 border border-secondary/30">
+          <div class="card-body gap-3">
+            <div class="flex items-center justify-between">
+              <h3 class="card-title text-base text-secondary">AceStream Engine</h3>
+              <span class="badge badge-secondary badge-outline font-mono">:6878</span>
+            </div>
+            <p class="text-sm text-base-content/70">
+              Motor P2P de AceStream. Se encarga de conectarse a la red y gestionar los torrents de vídeo.
+            </p>
+            <div class="text-xs text-base-content/40 font-mono bg-base-300 rounded-lg p-2">
+              aceserve container
+            </div>
+          </div>
+        </div>
+
+        <div class="card bg-base-200 border border-accent/30">
+          <div class="card-body gap-3">
+            <div class="flex items-center justify-between">
+              <h3 class="card-title text-base text-accent">HTTP Ace Proxy</h3>
+              <span class="badge badge-accent badge-outline font-mono">:8888</span>
+            </div>
+            <p class="text-sm text-base-content/70">
+              Gestiona las sesiones de streaming activas. Todos los clientes conectan aquí para recibir el stream.
+            </p>
+            <div class="text-xs text-base-content/40 font-mono bg-base-300 rounded-lg p-2">
+              /content_id/…/stream.ts
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- CÓMO FUNCIONA -->
+  <section id="como-funciona" class="py-16 px-4 border-t border-base-300">
+    <div class="max-w-4xl mx-auto">
+      <div class="text-center mb-12">
+        <h2 class="text-3xl font-bold mb-3">Cómo funciona</h2>
+        <p class="text-base-content/60">En tres pasos desde cero hasta streaming</p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+        <div class="flex flex-col gap-4">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-primary-content font-black text-lg shrink-0">1</div>
+            <h3 class="text-lg font-bold">Instalar</h3>
+          </div>
+          <p class="text-base-content/60 text-sm pl-13 leading-relaxed">
+            Ejecuta el one-liner en la Raspberry Pi. El script instala Docker, Tailscale, descarga las imágenes y arranca el stack automáticamente.
+          </p>
+        </div>
+
+        <div class="flex flex-col gap-4">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full bg-secondary flex items-center justify-center text-secondary-content font-black text-lg shrink-0">2</div>
+            <h3 class="text-lg font-bold">Conectar</h3>
+          </div>
+          <p class="text-base-content/60 text-sm leading-relaxed">
+            Une la Raspberry Pi a tu red Tailscale con <code class="bg-base-300 px-1 rounded text-xs">tailscale up</code>. Accede a la interfaz web desde cualquier dispositivo con Tailscale instalado.
+          </p>
+        </div>
+
+        <div class="flex flex-col gap-4">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full bg-accent flex items-center justify-center text-accent-content font-black text-lg shrink-0">3</div>
+            <h3 class="text-lg font-bold">Reproducir stream</h3>
+          </div>
+          <p class="text-base-content/60 text-sm leading-relaxed">
+            Abre la interfaz en <code class="bg-base-300 px-1 rounded text-xs">http://&lt;pi-ip&gt;:8080</code>, pega un ID de AceStream y obtén la URL para VLC o tu reproductor favorito.
+          </p>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- CLI acestream-ctl -->
+  <section class="py-16 px-4 border-t border-base-300 bg-base-200/30">
+    <div class="max-w-3xl mx-auto">
+      <div class="text-center mb-10">
+        <h2 class="text-3xl font-bold mb-3">CLI <code class="text-primary">acestream-ctl</code></h2>
+        <p class="text-base-content/60">Gestiona el stack desde la terminal</p>
+      </div>
+
+      <div class="bg-base-300 rounded-2xl border border-base-content/10 overflow-hidden">
+        <!-- Terminal header -->
+        <div class="flex items-center gap-2 px-4 py-3 bg-base-content/5 border-b border-base-content/10">
+          <span class="w-3 h-3 rounded-full bg-error/70"></span>
+          <span class="w-3 h-3 rounded-full bg-warning/70"></span>
+          <span class="w-3 h-3 rounded-full bg-success/70"></span>
+          <span class="text-xs text-base-content/30 ml-2 font-mono">raspberry@pi:~</span>
+        </div>
+        <!-- Commands -->
+        <div class="p-5 space-y-3 code-block text-sm">
+          <div>
+            <span class="text-success">$</span>
+            <span class="text-base-content/90 ml-2">acestream-ctl <span class="text-primary">status</span></span>
+            <p class="text-base-content/40 text-xs mt-1 ml-5">Ver estado de todos los contenedores</p>
+          </div>
+          <div class="border-t border-base-content/5 pt-3">
+            <span class="text-success">$</span>
+            <span class="text-base-content/90 ml-2">acestream-ctl <span class="text-primary">url</span> <span class="text-accent">&lt;ACESTREAM_ID&gt;</span></span>
+            <p class="text-base-content/40 text-xs mt-1 ml-5">Obtener URL de stream para un ID</p>
+          </div>
+          <div class="border-t border-base-content/5 pt-3">
+            <span class="text-success">$</span>
+            <span class="text-base-content/90 ml-2">acestream-ctl <span class="text-primary">logs</span></span>
+            <p class="text-base-content/40 text-xs mt-1 ml-5">Ver logs de todos los servicios</p>
+          </div>
+          <div class="border-t border-base-content/5 pt-3">
+            <span class="text-success">$</span>
+            <span class="text-base-content/90 ml-2">acestream-ctl <span class="text-primary">restart</span></span>
+            <p class="text-base-content/40 text-xs mt-1 ml-5">Reiniciar el stack completo</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="footer footer-center py-10 px-4 border-t border-base-300 text-base-content/40">
+    <div class="flex flex-col items-center gap-3">
+      <p class="text-lg font-bold gradient-text">AceBerry</p>
+      <p class="text-sm">Stack de AceStream P2P para Raspberry Pi</p>
+      <a href="https://github.com/AlexAdiaconitei/aceberry"
+         target="_blank"
+         rel="noopener noreferrer"
+         class="btn btn-ghost btn-sm gap-2 text-base-content/50 hover:text-base-content">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.387.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.726-4.042-1.61-4.042-1.61-.546-1.387-1.333-1.757-1.333-1.757-1.09-.745.083-.729.083-.729 1.205.085 1.84 1.237 1.84 1.237 1.07 1.834 2.807 1.304 3.492.997.108-.775.418-1.305.762-1.605-2.665-.3-5.467-1.332-5.467-5.93 0-1.31.468-2.382 1.236-3.222-.124-.303-.536-1.523.117-3.176 0 0 1.008-.322 3.3 1.23a11.5 11.5 0 0 1 3.003-.404c1.02.005 2.047.138 3.003.404 2.29-1.552 3.297-1.23 3.297-1.23.655 1.653.243 2.873.12 3.176.77.84 1.235 1.912 1.235 3.222 0 4.61-2.807 5.625-5.479 5.92.43.372.823 1.102.823 2.222 0 1.606-.015 2.898-.015 3.293 0 .322.216.694.825.576C20.565 21.796 24 17.298 24 12c0-6.63-5.37-12-12-12z"/>
+        </svg>
+        github.com/AlexAdiaconitei/aceberry
+      </a>
+    </div>
+  </footer>
+
+</body>
+</html>

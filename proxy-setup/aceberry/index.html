@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="night">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AceBerry</title>
+<link rel="icon" href="/logo.png" type="image/png">
+<link href="https://cdn.jsdelivr.net/npm/daisyui@4/dist/full.min.css" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3/dist/cdn.min.js"></script>
+<script src="https://unpkg.com/mpegts.js/dist/mpegts.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+<style>[x-cloak]{display:none!important}</style>
+<script>
+const H='{{HOST}}', PP={{PROXY_PORT}}, EP={{ENGINE_PORT}}, AP={{HTTPACEPROXY_PORT}};
+const ENABLED_PLUGINS='{{ENABLED_PLUGINS}}';
+const SHOW_STREAMS={{SHOW_STREAM_LISTS}};
+</script>
+</head>
+<body class="min-h-screen p-4">
+<div class="max-w-6xl mx-auto" x-data="aceberry()">
+
+  <!-- Header -->
+  <div class="flex items-center gap-3 mb-6">
+    <img src="/logo.png" alt="AceBerry" class="w-10 h-10 rounded-lg">
+    <h1 class="text-2xl font-bold"><span class="text-primary">AceBerry</span></h1>
+  </div>
+
+  <!-- Layout container -->
+  <div class="flex flex-col gap-4"
+       :class="playerUrl ? 'lg:flex-row lg:items-start' : 'max-w-lg mx-auto'">
+
+  <!-- Left column: contents on mobile (children join parent flex), block on desktop -->
+  <div class="contents"
+       :class="playerUrl ? 'lg:block lg:w-96 lg:shrink-0 lg:space-y-4' : ''">
+
+  <!-- Stream card -->
+  <div class="card bg-base-200">
+    <div class="card-body gap-3">
+      <h2 class="card-title text-sm uppercase tracking-wide text-base-content/50">Reproducir stream</h2>
+      <input
+        type="text"
+        class="input input-bordered w-full"
+        placeholder="Pega el AceStream ID o acestream://..."
+        x-model="id"
+        @keydown.enter="genUrl()"
+        autofocus
+      >
+      <button class="btn btn-success w-full" @click="genUrl()"><i class="ti ti-link mr-1"></i>Generar URL</button>
+
+      <template x-if="url">
+        <div>
+          <div class="mockup-code bg-base-300 relative">
+            <pre class="text-primary text-xs break-all whitespace-pre-wrap px-4"><code x-text="url"></code></pre>
+            <button class="btn btn-xs absolute top-2 right-2" @click="copyText(url)">
+              <i class="ti" :class="copied === url ? 'ti-check text-success' : 'ti-copy'"></i>
+            </button>
+          </div>
+          <button class="btn btn-outline btn-primary w-full mt-2" @click="openVlcUrl(url)"><i class="ti ti-brand-vlc mr-1"></i>Abrir en VLC</button>
+          <button class="btn btn-outline btn-success w-full mt-2" @click="openPlayer()">
+            <i class="ti ti-player-play mr-1"></i>Ver stream
+          </button>
+        </div>
+      </template>
+    </div>
+  </div>
+
+  <!-- Stream lists card -->
+  <div class="card bg-base-200" x-show="SHOW_STREAMS"
+       :class="playerUrl ? 'order-4 lg:order-none' : ''">
+    <div class="card-body">
+      <h2 class="card-title text-sm uppercase tracking-wide text-base-content/50">Listas de streams para VLC</h2>
+      <ul class="menu menu-compact w-full p-0">
+        <template x-for="list in streamLists" :key="list.path">
+          <li>
+            <div class="flex items-center justify-between py-2 gap-2">
+              <div class="min-w-0 flex-1">
+                <span class="text-sm" x-text="list.name"></span>
+                <span class="block text-xs opacity-40" x-text="list.desc"></span>
+              </div>
+              <div class="flex gap-1 shrink-0">
+                <button class="btn btn-xs btn-outline" @click="openBrowser(list)"><i class="ti ti-list-search sm:mr-1"></i><span class="hidden sm:inline">Explorar</span></button>
+                <button class="btn btn-xs" @click="copyText(listUrl(list))">
+                  <i class="ti" :class="copied === listUrl(list) ? 'ti-check text-success' : 'ti-copy'"></i>
+                </button>
+                <button class="btn btn-xs btn-primary" @click="openVlcUrl(listUrl(list))"><i class="ti ti-brand-vlc mr-1"></i>VLC</button>
+              </div>
+            </div>
+          </li>
+        </template>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Status card -->
+  <div class="card bg-base-200"
+       :class="playerUrl ? 'order-5 lg:order-none' : ''">
+    <div class="card-body gap-3">
+      <div class="flex items-center justify-between">
+        <h2 class="card-title text-sm uppercase tracking-wide text-base-content/50">Estado</h2>
+        <button class="btn btn-ghost btn-xs" @click="statsExpanded = !statsExpanded">
+          <i class="ti ti-chevron-down transition-transform duration-200 text-base" :class="statsExpanded ? 'rotate-180' : ''"></i>
+        </button>
+      </div>
+
+      <!-- Engine row (always visible) -->
+      <div class="flex items-center gap-2">
+        <span
+          class="badge"
+          :class="status.online ? 'badge-success' : 'badge-error'"
+          x-text="status.online ? (status.version || 'online') : 'offline'"
+        ></span>
+        <span class="text-sm text-base-content/50">AceStream Engine</span>
+      </div>
+
+      <!-- Collapsed summary -->
+      <div x-show="!statsExpanded && aceproxy.data" class="text-xs text-base-content/40 tabular-nums">
+        CPU <span x-text="cpuLabel()"></span> · RAM <span x-text="ramLabel()"></span>
+      </div>
+
+      <!-- HTTPAceProxy stats (expanded) -->
+      <div x-show="statsExpanded" x-transition>
+        <div class="flex items-center gap-2 mb-2">
+          <span class="text-sm font-semibold text-base-content/70">HTTPAceProxy</span>
+          <span class="loading loading-spinner loading-xs" x-show="aceproxy.firstLoad"></span>
+        </div>
+
+        <template x-if="!aceproxy.firstLoad && !aceproxy.data">
+          <span class="text-sm text-error">Sin conexión</span>
+        </template>
+
+        <!-- Compact rows — x-show keeps DOM alive during background polling -->
+        <div class="divide-y divide-base-content/10" x-show="aceproxy.data">
+
+          <!-- Engine info row -->
+          <div class="flex items-center gap-2 py-2">
+            <span class="w-14 text-xs text-base-content/40 shrink-0">Engine</span>
+            <span
+              class="badge badge-xs shrink-0"
+              :class="aceproxy.data?.server_info?.acestream_engine?.status === 'connected' ? 'badge-success' : 'badge-error'"
+              x-text="aceproxy.data?.server_info?.acestream_engine?.status ?? 'offline'"
+            ></span>
+            <span class="text-xs text-base-content/50 truncate" x-text="aceproxy.data?.server_info?.acestream_engine?.version ?? ''"></span>
+          </div>
+
+          <!-- Plugins row -->
+          <div class="flex items-start gap-2 py-2" x-show="aceproxy.data?.server_info?.plugins_loaded?.length">
+            <span class="w-14 text-xs text-base-content/40 shrink-0 pt-0.5">Plugins</span>
+            <div class="flex flex-wrap gap-1">
+              <template x-for="pl in (aceproxy.data?.server_info?.plugins_loaded ?? [])" :key="pl.name">
+                <span
+                  class="badge badge-xs"
+                  :class="pl.status === 'loaded' ? 'badge-success' : 'badge-warning'"
+                  x-text="pl.name + ' (' + pl.channels + ')'"
+                ></span>
+              </template>
+            </div>
+          </div>
+
+          <!-- CPU row -->
+          <div class="flex items-center gap-2 py-2" x-show="aceproxy.data?.sys_info">
+            <span class="w-14 shrink-0 text-xs text-base-content/40">CPU</span>
+            <div class="flex-1 h-1.5 bg-base-300 rounded-full overflow-hidden">
+              <div class="h-full bg-primary rounded-full transition-[width] duration-500" :style="`width:${cpuValue()}%`"></div>
+            </div>
+            <span class="text-xs text-base-content/50 w-10 text-right tabular-nums" x-text="cpuLabel()"></span>
+          </div>
+
+          <!-- RAM row -->
+          <div class="flex items-center gap-2 py-2" x-show="aceproxy.data?.sys_info">
+            <span class="w-14 shrink-0 text-xs text-base-content/40">RAM</span>
+            <div class="flex-1 h-1.5 bg-base-300 rounded-full overflow-hidden">
+              <div class="h-full bg-secondary rounded-full transition-[width] duration-500" :style="`width:${ramValue()}%`"></div>
+            </div>
+            <span class="text-xs text-base-content/50 w-24 text-right tabular-nums" x-text="ramLabel()"></span>
+          </div>
+
+          <!-- Disk row -->
+          <div class="flex items-center gap-2 py-2" x-show="aceproxy.data?.sys_info">
+            <span class="w-14 shrink-0 text-xs text-base-content/40">Disco</span>
+            <div class="flex-1 h-1.5 bg-base-300 rounded-full overflow-hidden">
+              <div class="h-full bg-accent rounded-full transition-[width] duration-500" :style="`width:${diskValue()}%`"></div>
+            </div>
+            <span class="text-xs text-base-content/50 w-24 text-right tabular-nums" x-text="diskLabel()"></span>
+          </div>
+
+          <!-- Connections row -->
+          <div class="flex items-center gap-2 py-2" x-show="aceproxy.data?.connection_info">
+            <span class="w-14 text-xs text-base-content/40 shrink-0">Clientes</span>
+            <span class="text-xs text-base-content/70 tabular-nums"
+              x-text="(aceproxy.data?.connection_info?.total_clients ?? 0) + ' / ' + (aceproxy.data?.connection_info?.max_clients ?? '?')"
+            ></span>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  </div><!-- /left column -->
+
+  <!-- Player -->
+  <div :class="playerUrl ? 'order-2 lg:order-none lg:flex-1' : ''" x-show="playerUrl">
+    <div class="card bg-base-200">
+      <div class="card-body p-3 gap-2">
+        <video x-ref="hlsVideo" controls class="w-full aspect-video bg-black rounded-lg"></video>
+        <div class="flex justify-end">
+          <button class="btn btn-xs btn-error" @click="closePlayer()">
+            <i class="ti ti-circle-x"></i> Cerrar Player
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  </div><!-- /layout -->
+
+  <!-- Channel browser modal -->
+  <dialog id="channel-modal" class="modal">
+    <div class="modal-box w-full max-w-lg">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="font-bold" x-text="browser.list?.name ?? ''"></h3>
+        <button class="btn btn-sm btn-ghost" @click="closeBrowser()"><i class="ti ti-x"></i></button>
+      </div>
+      <input type="search" class="input input-bordered input-sm w-full mb-3"
+             placeholder="Buscar canal..." x-model="browser.search">
+      <div x-show="browser.loading" class="flex justify-center py-8">
+        <span class="loading loading-spinner"></span>
+      </div>
+      <div x-show="browser.error" class="text-error text-sm py-4">Error al cargar la lista</div>
+      <div x-show="!browser.loading && !browser.error"
+           class="divide-y divide-base-content/10 max-h-96 overflow-y-auto">
+        <template x-for="(ch, idx) in filteredChannels()" :key="idx">
+          <div class="flex items-center gap-2 py-2">
+            <span class="text-sm flex-1 truncate" x-text="ch.name"></span>
+            <button class="btn btn-xs" @click="copyText(ch.url)">
+              <i class="ti" :class="copied === ch.url ? 'ti-check text-success' : 'ti-copy'"></i>
+            </button>
+            <button class="btn btn-xs btn-success" @click="playInBrowser(ch.url)"><i class="ti ti-player-play"></i></button>
+            <button class="btn btn-xs btn-primary" @click="openVlcUrl(ch.url)"><i class="ti ti-brand-vlc mr-1"></i> VLC</button>
+          </div>
+        </template>
+        <div x-show="filteredChannels().length === 0 && !browser.loading"
+             class="text-center text-sm text-base-content/40 py-6">Sin resultados</div>
+      </div>
+      <div class="text-xs text-base-content/30 mt-2 text-right"
+           x-text="filteredChannels().length + ' canales'" x-show="!browser.loading"></div>
+    </div>
+    <form method="dialog" class="modal-backdrop"><button @click="closeBrowser()"></button></form>
+  </dialog>
+
+</div>
+
+<!-- Toast -->
+<div
+  class="toast toast-bottom toast-center z-50"
+  x-show="toastMsg"
+  x-transition
+  x-cloak
+>
+  <div class="alert alert-success"><span x-text="toastMsg"></span></div>
+</div>
+
+<script>
+function aceberry() {
+  return {
+    id: '',
+    url: '',
+    copied: '',
+    toastMsg: '',
+    statsExpanded: false,
+    status: { online: false, version: null },
+    aceproxy: { firstLoad: true, data: null },
+    browser: { list: null, loading: false, error: false, channels: [], search: '' },
+    playerUrl: '',
+    _player: null,
+    streamLists: (() => {
+      const all = [
+        { name: 'Todo combinado',     path: 'aio',    desc: 'Todas las fuentes' },
+        { name: 'Deportes (NewEra)',  path: 'newera', desc: '322 canales'       },
+        { name: 'Seleccion (Elcano)', path: 'elcano', desc: '71 canales'        },
+        { name: 'AceStream API',      path: 'acepl',  desc: '1000+ canales'     },
+      ];
+      if (ENABLED_PLUGINS === 'all') return all;
+      const enabled = ENABLED_PLUGINS.split(',').map(p => p.trim());
+      return all.filter(l => l.path === 'aio' || enabled.includes(l.path));
+    })(),
+
+    genUrl() {
+      let sid = this.id.trim().replace('acestream://', '');
+      if (!sid) { this.showToast('Pega un ID primero'); return; }
+      this.url = `http://${H}:${AP}/content_id/${sid}/stream.ts`;
+    },
+
+    openPlayer() {
+      let sid = this.id.trim().replace('acestream://', '');
+      if (!sid) return;
+      this.playerUrl = `/aceproxy/content_id/${sid}/stream.ts`;
+      this.initPlayer();
+    },
+
+    initPlayer() {
+      const video = this.$refs.hlsVideo;
+      if (!video || !this.playerUrl) return;
+      if (this._player) { this._player.destroy(); this._player = null; }
+      if (mpegts.isSupported()) {
+        this._player = mpegts.createPlayer({ type: 'mpegts', url: this.playerUrl, isLive: true });
+        this._player.attachMediaElement(video);
+        this._player.load();
+        this._player.play();
+      }
+    },
+
+    closePlayer() {
+      if (this._player) { this._player.destroy(); this._player = null; }
+      this.playerUrl = '';
+    },
+
+    async openBrowser(list) {
+      this.browser = { list, loading: true, error: false, channels: [], search: '' };
+      document.getElementById('channel-modal').showModal();
+      try {
+        const r = await fetch(`/aceproxy/${list.path}`);
+        const raw = await r.text();
+        const text = raw.replaceAll('http://httpaceproxy:8888', `http://${H}:${AP}`);
+        this.browser.channels = this.parseM3u(text);
+      } catch {
+        this.browser.error = true;
+      } finally {
+        this.browser.loading = false;
+      }
+    },
+
+    closeBrowser() {
+      document.getElementById('channel-modal').close();
+      this.browser = { list: null, loading: false, error: false, channels: [], search: '' };
+    },
+
+    playInBrowser(url) {
+      const path = url.replace(`http://${H}:${AP}`, '');
+      this.playerUrl = `/aceproxy${path}`;
+      this.closeBrowser();
+      this.initPlayer();
+    },
+
+    parseM3u(text) {
+      const lines = text.split('\n');
+      const channels = [];
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (line.startsWith('#EXTINF')) {
+          const name = line.includes(',') ? line.split(',').slice(1).join(',').trim() : 'Canal';
+          let j = i + 1;
+          while (j < lines.length && lines[j].trim().startsWith('#')) j++;
+          const url = (lines[j] || '').trim();
+          if (url) {
+            channels.push({ name, url });
+            i = j;
+          }
+        }
+      }
+      return channels;
+    },
+
+    filteredChannels() {
+      const q = this.browser.search.toLowerCase();
+      return q ? this.browser.channels.filter(c => c.name.toLowerCase().includes(q)) : this.browser.channels;
+    },
+
+    listUrl(list) {
+      return `http://${H}:${AP}/${list.path}`;
+    },
+
+    copyText(text) {
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(text).then(() => this.showToast('Copiado'));
+      } else {
+        const t = document.createElement('textarea');
+        t.value = text;
+        document.body.appendChild(t);
+        t.select();
+        document.execCommand('copy');
+        document.body.removeChild(t);
+        this.showToast('Copiado');
+      }
+      this.copied = text;
+      setTimeout(() => this.copied = '', 2000);
+    },
+
+    openVlcUrl(url) {
+      const a = document.createElement('a');
+      a.href = 'vlc://' + url;
+      a.click();
+    },
+
+    showToast(msg) {
+      this.toastMsg = msg;
+      setTimeout(() => this.toastMsg = '', 2000);
+    },
+
+    async loadStatus() {
+      try {
+        const r = await fetch('/status');
+        const d = await r.json();
+        this.status.online = d.engine.online;
+        this.status.version = d.engine.version;
+      } catch {
+        this.status.online = false;
+      }
+    },
+
+    async loadAceproxy() {
+      try {
+        const r = await fetch('/aceproxy/stat');
+        this.aceproxy.data = await r.json();
+      } catch {
+        if (this.aceproxy.firstLoad) this.aceproxy.data = null;
+      } finally {
+        this.aceproxy.firstLoad = false;
+      }
+    },
+
+    cpuValue() {
+      const cpu = this.aceproxy.data?.sys_info?.cpu_percent;
+      if (!cpu) return 0;
+      if (Array.isArray(cpu)) return cpu.reduce((a, b) => a + b, 0) / cpu.length;
+      return cpu;
+    },
+    cpuLabel() {
+      return this.cpuValue().toFixed(1) + '%';
+    },
+
+    ramValue() {
+      const m = this.aceproxy.data?.sys_info?.mem_info;
+      if (!m?.total) return 0;
+      return (m.used / m.total) * 100;
+    },
+    ramLabel() {
+      const m = this.aceproxy.data?.sys_info?.mem_info;
+      if (!m) return '';
+      const mb = v => (v / 1024 / 1024).toFixed(0) + ' MB';
+      return `${mb(m.used)} / ${mb(m.total)}`;
+    },
+
+    diskValue() {
+      const d = this.aceproxy.data?.sys_info?.disk_info;
+      if (!d?.total) return 0;
+      return (d.used / d.total) * 100;
+    },
+    diskLabel() {
+      const d = this.aceproxy.data?.sys_info?.disk_info;
+      if (!d) return '';
+      const gb = v => (v / 1024 / 1024 / 1024).toFixed(1) + ' GB';
+      return `${gb(d.used)} / ${gb(d.total)}`;
+    },
+
+    init() {
+      this.loadStatus();
+      this.loadAceproxy();
+      setInterval(() => this.loadStatus(), 10000);
+      setInterval(() => this.loadAceproxy(), 30000);
+    },
+  };
+}
+</script>
+</body>
+</html>

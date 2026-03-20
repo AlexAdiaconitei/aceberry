@@ -83,11 +83,11 @@ Abre `http://<TU_IP>:8080` en el navegador. Pega el ID, copia la URL o ábrela d
 ## CLI
 
 ```bash
-acestream-ctl status      # Estado de servicios y sesiones activas
-acestream-ctl url <ID>    # Genera URLs para un ID
-acestream-ctl logs        # Logs en tiempo real
-acestream-ctl restart     # Reiniciar el stack
-acestream-ctl stop        # Parar el stream activo
+aceberry-ctl status      # Estado de servicios y sesiones activas
+aceberry-ctl url <ID>    # Genera URLs para un ID
+aceberry-ctl logs        # Logs en tiempo real
+aceberry-ctl restart     # Reiniciar el stack
+aceberry-ctl stop        # Parar el stream activo
 ```
 
 ---

@@ -33,7 +33,7 @@ for ip,v in s.items(): print(f'    {ip} -> {v[\"id\"][:16]}... ({v[\"started\"]}
     echo ""
     ;;
 url)
-    id="${2:-}"; [[ -z "$id" ]] && { echo "Uso: acestream-ctl url <ID>"; exit 1; }
+    id="${2:-}"; [[ -z "$id" ]] && { echo "Uso: aceberry-ctl url <ID>"; exit 1; }
     id="${id#acestream://}"; ip=$(get_ip)
     echo ""
     echo -e "${B}URLs:${N}"
@@ -48,7 +48,7 @@ restart) cd ~/acestream-stack && docker compose restart ;;
 stop) curl -sf "http://127.0.0.1:${PP}/stop" > /dev/null 2>&1 && echo "Stream parado" || echo "Sin stream activo" ;;
 help|--help|-h|*)
     echo ""
-    echo -e "${B}acestream-ctl${N} — Control de AceStream (opcional)"
+    echo -e "${B}aceberry-ctl${N} — Control de AceStream (opcional)"
     echo ""
     echo "  status     Estado de servicios y sesiones"
     echo "  url <ID>   Generar URLs"

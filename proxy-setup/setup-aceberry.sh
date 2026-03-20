@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 #
-# setup-acestream.sh — Instalación completa desde cero (o actualización rápida)
+# setup-aceberry.sh — Instalación completa desde cero (o actualización rápida)
 #
 # Docker + Tailscale + AceStream Engine + HTTPAceProxy
 # + Aceberry (web UI + stream resolver)
-# + acestream-ctl (CLI opcional)
+# + aceberry-ctl (CLI opcional)
 #
 # Fixes aplicados:
 #   - Bridge network con DNS explícito (1.1.1.1) para evitar
@@ -13,8 +13,8 @@
 #   - Sin mem_limit (kernels RPi no soportan cgroups memory)
 #   - UPnP deshabilitado (evita bucle infinito de port mapping)
 #
-# Uso: scp -r proxy-setup/ pi@raspberry:~/ && sudo ./proxy-setup/setup-acestream.sh
-#      sudo ./proxy-setup/setup-acestream.sh --quick   # saltar Docker/Tailscale
+# Uso: scp -r proxy-setup/ pi@raspberry:~/ && sudo ./proxy-setup/setup-aceberry.sh
+#      sudo ./proxy-setup/setup-aceberry.sh --quick   # saltar Docker/Tailscale
 #      (modo personalizado disponible durante la instalación interactiva)
 #
 
@@ -25,7 +25,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'
 CYAN='\033[0;36m'; BOLD='\033[1m'; NC='\033[0m'
 
-LOGFILE="/var/log/setup-acestream.log"
+LOGFILE="/var/log/setup-aceberry.log"
 paso_actual=0
 
 info()   { echo -e "${CYAN}ℹ ${NC} $*"; }
@@ -139,7 +139,7 @@ fi
 
 echo "=== Setup $(date) ===" > "$LOGFILE"
 
-[[ $EUID -ne 0 ]] && { error "Ejecuta con: sudo ./setup-acestream.sh"; exit 1; }
+[[ $EUID -ne 0 ]] && { error "Ejecuta con: sudo ./setup-aceberry.sh"; exit 1; }
 
 REAL_USER="${SUDO_USER:-$USER}"
 [[ "$REAL_USER" == "root" ]] && REAL_USER="pi"
@@ -160,7 +160,7 @@ if ! $QUICK; then
     echo ""
     info "Se va a instalar:"
     echo "  1. Sistema + dependencias      5. Desplegar stack (3 servicios)"
-    echo "  2. Docker + Compose            6. acestream-ctl (CLI)"
+    echo "  2. Docker + Compose            6. aceberry-ctl (CLI)"
     echo "  3. Tailscale (VPN)             7. Verificar servicios"
     echo "  4. Generar archivos del stack  8. Resumen"
     echo ""
@@ -299,14 +299,14 @@ else
 fi
 
 # ══════════════════════════════════════════════
-# PASO — INSTALAR ACESTREAM-CTL
+# PASO — INSTALAR ACEBERRY-CTL
 # ══════════════════════════════════════════════
-header "INSTALAR ACESTREAM-CTL"
+header "INSTALAR ACEBERRY-CTL"
 
-CTL="/usr/local/bin/acestream-ctl"
-cp "${SCRIPT_DIR}/acestream-ctl" "$CTL"
+CTL="/usr/local/bin/aceberry-ctl"
+cp "${SCRIPT_DIR}/aceberry-ctl" "$CTL"
 chmod +x "$CTL"
-ok "acestream-ctl instalado"
+ok "aceberry-ctl instalado"
 
 # ══════════════════════════════════════════════
 # PASO — VERIFICAR SERVICIOS
@@ -392,9 +392,9 @@ echo "  Proxy stats: http://${IP}:8888/stat"
 echo ""
 echo -e "${BOLD}🔧 Gestión:${NC}"
 echo ""
-echo "  acestream-ctl status        Estado de todo"
-echo "  acestream-ctl logs          Logs en tiempo real"
-echo "  acestream-ctl restart       Reiniciar stack"
+echo "  aceberry-ctl status        Estado de todo"
+echo "  aceberry-ctl logs          Logs en tiempo real"
+echo "  aceberry-ctl restart       Reiniciar stack"
 echo ""
 echo "  cd ${STACK_DIR}"
 echo "  ${COMPOSE_CMD} up -d        Levantar"
@@ -421,7 +421,7 @@ http://<IP>:8080
 Stats: http://<IP>:8888/stat
 
 == CLI ==
-acestream-ctl status|lists|logs|restart|url|web|stop|help
+aceberry-ctl status|lists|logs|restart|url|web|stop|help
 RESEOF
 chown "${REAL_USER}:${REAL_USER}" "/home/${REAL_USER}/acestream-info.txt" 2>/dev/null || true
 chown -R "${REAL_USER}:${REAL_USER}" "$STACK_DIR" 2>/dev/null || true

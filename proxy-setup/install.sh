@@ -69,10 +69,10 @@ try_git_clone() {
 
 # ─── File list (relative to proxy-setup/) ─────────────────────────────────────
 FILES=(
-    "setup-acestream.sh"
+    "setup-aceberry.sh"
     "docker-compose.yml"
     ".env"
-    "acestream-ctl"
+    "aceberry-ctl"
     "aceberry/proxy.py"
     "aceberry/index.html"
     "aceberry/logo.png"
@@ -101,22 +101,22 @@ else
         fi
     done
     if [[ $failed -eq 1 ]]; then
-        warn "Algunas descargas fallaron; continuando si setup-acestream.sh está disponible."
+        warn "Algunas descargas fallaron; continuando si setup-aceberry.sh está disponible."
     fi
     success "Archivos descargados (curl/wget)"
 fi
 
 # ─── Phase 3: Validate ────────────────────────────────────────────────────────
-if [[ ! -s "${SETUP_DIR}/setup-acestream.sh" ]]; then
-    error "Descarga fallida: setup-acestream.sh está vacío o no existe."
+if [[ ! -s "${SETUP_DIR}/setup-aceberry.sh" ]]; then
+    error "Descarga fallida: setup-aceberry.sh está vacío o no existe."
     exit 1
 fi
 
 # ─── Phase 4: Permissions & exec ──────────────────────────────────────────────
-chmod +x "${SETUP_DIR}/setup-acestream.sh"
-[[ -f "${SETUP_DIR}/acestream-ctl" ]] && chmod +x "${SETUP_DIR}/acestream-ctl"
+chmod +x "${SETUP_DIR}/setup-aceberry.sh"
+[[ -f "${SETUP_DIR}/aceberry-ctl" ]] && chmod +x "${SETUP_DIR}/aceberry-ctl"
 
 info "Ejecutando instalación..."
 echo
 
-exec bash "${SETUP_DIR}/setup-acestream.sh" "$@" </dev/tty
+exec bash "${SETUP_DIR}/setup-aceberry.sh" "$@" </dev/tty

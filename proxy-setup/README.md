@@ -79,11 +79,11 @@ Abre `http://<TU_IP>:8080` en el navegador. Pega el ID, copia la URL, abre en VL
 ## CLI (opcional)
 
 ```bash
-acestream-ctl status      # Estado de servicios + sesiones
-acestream-ctl url <ID>    # Genera URLs
-acestream-ctl logs        # Logs en tiempo real
-acestream-ctl restart     # Reiniciar stack
-acestream-ctl stop        # Parar stream activo
+aceberry-ctl status      # Estado de servicios + sesiones
+aceberry-ctl url <ID>    # Genera URLs
+aceberry-ctl logs        # Logs en tiempo real
+aceberry-ctl restart     # Reiniciar stack
+aceberry-ctl stop        # Parar stream activo
 ```
 
 ---
@@ -190,5 +190,5 @@ Si prefieres copiar los archivos manualmente desde tu PC:
 
 ```bash
 scp -r proxy-setup/ pi@raspberrypi.local:~/
-ssh pi@raspberrypi.local "sudo ./proxy-setup/setup-acestream.sh"
+ssh pi@raspberrypi.local "sudo ./proxy-setup/setup-aceberry.sh"
 ```
